@@ -1,6 +1,8 @@
+from Crypto.Util.number import *
 import random
 import pymysql
 import json
+import base64
 
 def encrypt(N):
     with open('public_key.txt') as p:
@@ -11,6 +13,7 @@ def encrypt(N):
     T2 = random.getrandbits(4)
     P2 = (T1*P1)%P0
     C = (N+T2*P2)%P0
+    C = base64.b64encode(long_to_bytes(C)).decode('utf-8')
     return C
 
 def decrypt(C):
@@ -18,6 +21,7 @@ def decrypt(C):
         variables = json.load(p)
     J = variables["J"]
     K = variables["K"]
+    C = bytes_to_long(base64.b64decode(C.encode('utf-8')))
     N = (C%J)%K
     return N
 
@@ -44,13 +48,16 @@ if __name__=='__main__':
         elif choice == 2:
             print("Enter name whose marks you want to view")
             name = input()
-            cursor.execute("SELECT * FROM marks where name = '%s' " % (name))
-            data = cursor.fetchone()
-            print("Name: " + str(data[0]))
-            print("Science marks: " + str(decrypt(int(data[1]))))
-            print("Math marks: " + str(decrypt(int(data[2]))))
-            print("English marks: " + str(decrypt(int(data[3]))))
-            db.commit()
+            numofrows = cursor.execute("SELECT * FROM marks where name = '%s' " % (name))
+            if not numofrows == 0:
+                data = cursor.fetchone()
+                print("Name: " + str(data[0]))
+                print("Science marks: " + str(decrypt(data[1])))
+                print("Math marks: " + str(decrypt(data[2])))
+                print("English marks: " + str(decrypt(data[3])))
+                db.commit()
+            else:
+                print("The name doesn't exist in the database")
         elif choice == 3:
             db.close()
             break

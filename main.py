@@ -7,13 +7,19 @@ import base64
 def encrypt(N):
     with open('public_key.txt') as p:
         variables = json.load(p)
+    intpart, decimalpart = str(N).split(".")
+    intpart = int(intpart)
+    decimalpart = int(decimalpart)
     P0 = variables["P0"]
     P1 = variables["P1"]
     T1 = random.getrandbits(4)
     T2 = random.getrandbits(4)
     P2 = (T1*P1)%P0
-    C = (N+T2*P2)%P0
-    C = base64.b64encode(long_to_bytes(C)).decode('utf-8')
+    C1 = (intpart+T2*P2)%P0
+    C2 = (decimalpart+T2*P2)%P0
+    C1 = base64.b64encode(long_to_bytes(C1)).decode('utf-8')
+    C2 = base64.b64encode(long_to_bytes(C2)).decode('utf-8')
+    C = C1 + "." + C2
     return C
 
 def decrypt(C):
@@ -21,8 +27,12 @@ def decrypt(C):
         variables = json.load(p)
     J = variables["J"]
     K = variables["K"]
-    C = bytes_to_long(base64.b64decode(C.encode('utf-8')))
-    N = (C%J)%K
+    C1, C2 = C.split('.')
+    C1 = bytes_to_long(base64.b64decode(C1.encode('utf-8')))
+    C2 = bytes_to_long(base64.b64decode(C2.encode('utf-8')))
+    intpart = (C1%J)%K
+    decimalpart = float("." + str((C2%J)%K))
+    N = intpart + decimalpart
     return N
 
 if __name__=='__main__':
@@ -38,11 +48,11 @@ if __name__=='__main__':
             print("Enter name")
             name = input()
             print("Enter science marks")
-            science = int(input())
+            science = float(input())
             print("Enter math marks")
-            math = int(input())
+            math = float(input())
             print("Enter english marks")
-            english = int(input())
+            english = float(input())
             cursor.execute("INSERT INTO marks (name,science,math,english) VALUES ('%s','%s','%s','%s')" % (name,str(encrypt(science)),str(encrypt(math)),str(encrypt(english))))
             db.commit()
         elif choice == 2:
